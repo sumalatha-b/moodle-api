@@ -1,0 +1,1400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:moodle-rest-lms="http://www.mulesoft.org/schema/mule/moodle-rest-lms" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/moodle-rest-lms http://www.mulesoft.org/schema/mule/moodle-rest-lms/current/mule-moodle-rest-lms.xsd http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+    <http:listener-config name="moodle-rest-lms-httpListenerConfig">
+        <http:listener-connection host="${https.host}" port="${https.port}" protocol="HTTPS">
+            <tls:context>
+                <tls:key-store type="jks" path="Client-Keystore.jks" keyPassword="Mule12345" password="Mule12345" />
+            </tls:context>
+        </http:listener-connection>
+    </http:listener-config>
+    <apikit:config name="moodle-rest-lms-config" api="moodle-rest-lms.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <moodle-rest-lms:config name="Moodle_Rest_Lms_Config" doc:name="Moodle Rest Lms Config" doc:id="8fae45da-3828-4689-85bd-4deb29d15a34">
+        <moodle-rest-lms:unsecured-connection />
+    </moodle-rest-lms:config>
+    <configuration-properties doc:name="Configuration properties" doc:id="04adb613-043f-47d2-af2d-d030df78fada" file="config.yaml" />
+    <configuration doc:name="Configuration" doc:id="0238e626-6d20-4a59-8738-456c34573971" defaultErrorHandler-ref="Global-Error-Handler" />
+    <flow name="moodle-rest-lms-main">
+        <http:listener config-ref="moodle-rest-lms-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="moodle-rest-lms-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="moodle-rest-lms-console">
+        <http:listener config-ref="moodle-rest-lms-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="moodle-rest-lms-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <sub-flow name="moodle-rest-lmsSub_Flow" doc:id="9d1511a8-6fc4-4914-89f8-037f22011be8">
+        <set-variable value="f37a91f88a5430a291eb308cc0a50c42" doc:name="Set Variable" doc:id="39577bb5-fd63-4c34-bad0-661ba57e9fd3" variableName="moodleToken" />
+    </sub-flow>
+    <flow name="post:\core_calendar_create_calendar_events:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="9606984a-7264-4229-917a-11ff4182565a" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_calendar_create_calendar_events">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="9bb904a4-e329-4267-b471-8ac7d550da34" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-calendar-create-calendar-events doc:name="Create Calendar Events" doc:id="e40a0533-05c7-4154-bfeb-4319081d6d8c" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-calendar-create-calendar-events-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,               
+    wsfunction: "core_calendar_create_calendar_events",
+    moodlewsrestformat: "json",
+    "events[0][name]": payload."events[0][name]",
+    "events[0][description]": payload."events[0][description]",
+    "events[0][format]": payload."events[0][format]",
+    "events[0][courseid]": payload."events[0][courseid]",
+    "events[0][groupid]": payload."events[0][groupid]",
+    "events[0][repeats]": payload."events[0][repeats]",
+    "events[0][eventtype]": payload."events[0][eventtype]",
+    "events[0][timestart]": payload."events[0][timestart]",
+    "events[0][timeduration]": payload."events[0][timeduration]",
+    "events[0][visible]": payload."events[0][visible]",
+    "events[0][sequence]": payload."events[0][sequence]"
+}]]]></moodle-rest-lms:post-core-calendar-create-calendar-events-body>
+        </moodle-rest-lms:post-core-calendar-create-calendar-events>
+    </flow>
+    <flow name="post:\core_calendar_delete_calendar_events:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="bdc17113-73d7-4e2a-8bc3-1fac1af4b4b1" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_calendar_delete_calendar_events">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="c9d3c352-7c59-4133-9770-26145aa2dae6" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-calendar-delete-calendar-events doc:name="Delete Calendar Events" doc:id="5f0fc7ab-51ca-4569-bc5f-7b276b7fbb71" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-calendar-delete-calendar-events-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                
+    wsfunction: "core_calendar_delete_calendar_events",
+    moodlewsrestformat: "json",
+    "events[0][eventid]": payload."events[0][eventid]",
+    "events[0][repeat]": payload."events[0][repeat]"
+}]]]></moodle-rest-lms:post-core-calendar-delete-calendar-events-body>
+        </moodle-rest-lms:post-core-calendar-delete-calendar-events>
+    </flow>
+    <flow name="post:\core_calendar_get_action_events_by_timesort:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="4ecec981-e268-49ec-a0ca-abc184e5390d" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_calendar_get_action_events_by_timesort">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="f1dad700-692e-4967-916f-782fc10067b6" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-calendar-get-action-events-by-timesort doc:name="Get Calendar events for students" doc:id="b14152f7-0f1b-4ef0-b04a-d1b4104625fb" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-calendar-get-action-events-by-timesort-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                        
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    timesortfrom: payload.timesortfrom
+}]]]></moodle-rest-lms:post-core-calendar-get-action-events-by-timesort-body>
+        </moodle-rest-lms:post-core-calendar-get-action-events-by-timesort>
+    </flow>
+    <flow name="post:\core_calendar_get_calendar_event_by_id:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="b96de88c-c2d9-4ae5-b6a2-48f3010437c7" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_calendar_get_calendar_event_by_id">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="b13fdd1d-b790-4bfe-af32-9376950511bf" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-calendar-get-calendar-event-by-id doc:name="Get Calendar Event by Id" doc:id="20f17d7c-4961-4e36-9427-264462721bf7" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-calendar-get-calendar-event-by-id-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                
+    wsfunction: "core_calendar_get_calendar_event_by_id",
+    moodlewsrestformat: "json",
+    eventid: payload.eventid
+}]]]></moodle-rest-lms:post-core-calendar-get-calendar-event-by-id-body>
+        </moodle-rest-lms:post-core-calendar-get-calendar-event-by-id>
+    </flow>
+    <flow name="post:\core_calendar_get_calendar_events:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="fb3767a7-0c5c-40f1-8ec4-dd6e651af163" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_calendar_get_calendar_events">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="2fc5e251-db40-4c99-b2fd-8b185c32064a" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-calendar-get-calendar-events doc:name="Get Calendar Events" doc:id="f949f119-fa83-420a-ae8d-4d517af0c62a" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-calendar-get-calendar-events-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                       
+    wsfunction: "core_calendar_get_calendar_events",
+    moodlewsrestformat: "json",
+    ("events[eventids][0]": payload.'events[eventids][0]') if(!isEmpty(payload.'events[eventids][0]')),
+    ("events[courseids][0]": payload.'events[courseids][0]')if(!isEmpty(payload.'events[courseids][0]')),
+    ("events[groupids][0]": payload.'events[groupids][0]')if(!isEmpty(payload.'events[groupids][0]')),
+    ("events[categoryids][0]": payload.'events[categoryids][0]')if(!isEmpty(payload.'events[categoryids][0]'))
+}]]]></moodle-rest-lms:post-core-calendar-get-calendar-events-body>
+        </moodle-rest-lms:post-core-calendar-get-calendar-events>
+    </flow>
+    <flow name="post:\core_cohort_add_cohort_members:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="bd2f9f29-941c-4632-8a80-da1e625f951c" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_cohort_add_cohort_members">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="61ea9bee-22d5-49c4-812b-d3b21a3cb682" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-cohort-add-cohort-members doc:name="Add Cohort Members" doc:id="d6cb2880-dff6-478e-8b79-b9560193930b" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-cohort-add-cohort-members-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: payload.wsfunction,
+    (moodlewsrestformat: payload.moodlewsrestformat) if(!isEmpty(payload.moodlewsrestformat)),
+    "members[0][cohorttype][type]": payload.'members[0][cohorttype][type]',
+    "members[0][cohorttype][value]": payload.'members[0][cohorttype][value]',
+    ("members[0][usertype][type]": payload.'members[0][usertype][type]') if(!isEmpty(payload.'members[0][usertype][type]')),
+    ("members[0][usertype][value]": payload.'members[0][usertype][value]')if(!isEmpty(payload.'members[0][usertype][value]'))
+}]]]></moodle-rest-lms:post-core-cohort-add-cohort-members-body>
+        </moodle-rest-lms:post-core-cohort-add-cohort-members>
+    </flow>
+    <flow name="post:\core_cohort_create_cohorts:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="f08eebe0-776e-4e84-bfba-bd03d88ea12b" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_cohort_create_cohorts">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="ff7f4e3d-d4e6-4637-aca5-44ab879229b9" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-cohort-create-cohorts doc:name="Create Cohorts" doc:id="767ac7e9-8947-46e8-bbcf-4a3685003da2" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-cohort-create-cohorts-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                      
+    wsfunction: "core_cohort_create_cohorts",
+    moodlewsrestformat: "json",
+    "cohorts[0][categorytype][type]": payload.'cohorts[0][categorytype][type]',
+    "cohorts[0][categorytype][value]": payload.'cohorts[0][categorytype][value]',
+    "cohorts[0][name]": payload.'cohorts[0][name]',
+    "cohorts[0][idnumber]": payload.'cohorts[0][idnumber]',
+    "cohorts[0][description]": payload.'cohorts[0][description]',
+    "cohorts[0][descriptionformat]": payload.'cohorts[0][descriptionformat]',
+    "cohorts[0][visible]": payload.'cohorts[0][visible]',
+    "cohorts[0][theme]": payload.'cohorts[0][theme]'
+}]]]></moodle-rest-lms:post-core-cohort-create-cohorts-body>
+        </moodle-rest-lms:post-core-cohort-create-cohorts>
+    </flow>
+    <flow name="post:\core_cohort_delete_cohort_members:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="44d11d46-0e96-4abc-a5f8-2ecf5a4e5d86" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_cohort_delete_cohort_members">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="367046a6-266a-4474-8860-24305a3abb5b" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-cohort-delete-cohort-members doc:name="Delete Cohort Members" doc:id="13d35048-d066-4711-bf82-cef104f38b96" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-cohort-delete-cohort-members-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                      
+    wsfunction: "core_cohort_delete_cohort_members",
+    (moodlewsrestformat: payload.moodlewsrestformat) if(!isEmpty(payload.moodlewsrestformat)),
+    ("members[0][cohortid]": payload.'members[0][cohortid]') if(!isEmpty(payload.'members[0][cohortid]')),
+    ("members[0][userid]": payload.'members[0][userid]') if(!isEmpty(payload.'members[0][userid]'))
+}]]]></moodle-rest-lms:post-core-cohort-delete-cohort-members-body>
+        </moodle-rest-lms:post-core-cohort-delete-cohort-members>
+    </flow>
+    <flow name="post:\core_cohort_delete_cohorts:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="5d026161-9710-422c-8a05-96dcbf60436d" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_cohort_delete_cohorts">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="3bfda56e-8195-4279-ae09-4459a3034051" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-cohort-delete-cohorts doc:name="Delete Cohorts" doc:id="814fbb34-fba3-4f81-9bee-2c069840107d" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-cohort-delete-cohorts-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                         
+    wsfunction: payload.wsfunction,
+   ("moodlewsrestformat": payload.moodlewsrestformat) if(!isEmpty(payload.moodlewsrestformat)),
+    ("cohortids[0]": payload.'cohortids[0]') if(!isEmpty(payload.'cohortids[0]'))
+}]]]></moodle-rest-lms:post-core-cohort-delete-cohorts-body>
+        </moodle-rest-lms:post-core-cohort-delete-cohorts>
+    </flow>
+    <flow name="post:\core_cohort_get_cohort_members:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="3314d666-58a0-4ef2-8cd9-07ae4cebbe51" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_cohort_get_cohort_members">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="a600922c-4cde-4cea-8425-1b3aca9786c3" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-cohort-get-cohort-members doc:name="Get Cohort Members" doc:id="e0fa781d-a6ad-41fe-b313-9ecac4663d76" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-cohort-get-cohort-members-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                          
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    "cohortids[0]": payload.'cohortids[0]'                
+}]]]></moodle-rest-lms:post-core-cohort-get-cohort-members-body>
+        </moodle-rest-lms:post-core-cohort-get-cohort-members>
+    </flow>
+    <flow name="post:\core_cohort_get_cohorts:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="a3d1315d-cc8f-4984-9c98-4b8a4e65e2fc" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_cohort_get_cohorts">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="4547f193-9dc2-4f2b-ba71-7a6b276775af" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-cohort-get-cohorts doc:name="Get Cohorts" doc:id="02c41614-b22a-4c84-a130-e0e7d652d08f" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-cohort-get-cohorts-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,              
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json"
+}]]]></moodle-rest-lms:post-core-cohort-get-cohorts-body>
+        </moodle-rest-lms:post-core-cohort-get-cohorts>
+    </flow>
+    <flow name="post:\core_cohort_update_cohorts:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="4e81cc98-7c94-48ff-81b7-88f7ac367a16" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_cohort_update_cohorts">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="9152e2cc-492a-4ce7-87c9-d49370a19e5e" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-cohort-update-cohorts doc:name="Update Cohorts" doc:id="ad110bd7-ff6e-4593-a284-0710921d8b2e" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-cohort-update-cohorts-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                             
+    wsfunction: "core_cohort_update_cohorts",
+    moodlewsrestformat: "json",
+    "cohorts[0][id]": payload.'cohorts[0][id]',
+    "cohorts[0][categorytype][type]": payload.'cohorts[0][categorytype][type]',
+    "cohorts[0][categorytype][value]": payload.'cohorts[0][categorytype][value]',
+    "cohorts[0][name]": payload.'cohorts[0][name]',
+    "cohorts[0][idnumber]": payload.'cohorts[0][idnumber]',
+    "cohorts[0][description]": payload.'cohorts[0][description]',
+    "cohorts[0][descriptionformat]": payload.'cohorts[0][descriptionformat]',
+    "cohorts[0][visible]": payload.'cohorts[0][visible]',
+    "cohorts[0][theme]": payload.'cohorts[0][theme]',
+    "cohorts[0][customfields][0][shortname]": payload.'cohorts[0][customfields][0][shortname]',
+    "cohorts[0][customfields][0][value]": payload.'cohorts[0][customfields][0][value]'
+}]]]></moodle-rest-lms:post-core-cohort-update-cohorts-body>
+        </moodle-rest-lms:post-core-cohort-update-cohorts>
+    </flow>
+    <flow name="post:\core_course_create_categories:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="0e5af69b-1903-46b3-a9dd-081bef34e96c" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_course_create_categories">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="67821c6d-6a5a-4468-8c94-36a28134d39d" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-course-create-categories doc:name="Create Course Categories" doc:id="00a734b3-d215-4671-bfae-64b84e4b06a6" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-course-create-categories-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                    
+    wsfunction: "core_course_create_categories",
+    moodlewsrestformat: "json",
+    ("categories[0][name]": payload.'categories[0][name]') if(!isEmpty(payload.'categories[0][name]')),
+    "categories[0][parent]": payload.'categories[0][parent]',
+    "categories[0][idnumber]": payload.'categories[0][idnumber]',
+    "categories[0][description]": payload.'categories[0][description]',
+    "categories[0][descriptionformat]": payload.'categories[0][descriptionformat]',
+    "categories[0][theme]": payload.'categories[0][theme]'
+}]]]></moodle-rest-lms:post-core-course-create-categories-body>
+        </moodle-rest-lms:post-core-course-create-categories>
+    </flow>
+    <flow name="post:\core_course_create_courses:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="3894be81-7a60-4d32-bb81-6b50e699f412" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_course_create_courses">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="4550742c-fdad-47f8-9ea7-7723cd481958" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-course-create-courses doc:name="Create Courses" doc:id="ddd62042-3906-4b9a-b8dc-2f6065d11363" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-course-create-courses-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                            
+    wsfunction: "core_course_create_courses",
+    moodlewsrestformat: "json",
+    ('courses[0][fullname]': payload.'courses[0][fullname]') if (!isEmpty(payload.'courses[0][fullname]')),
+    ('courses[0][shortname]': payload.'courses[0][shortname]') if (!isEmpty(payload.'courses[0][shortname]')),
+    'courses[0][categoryid]': payload.'courses[0][categoryid]',
+    ('courses[0][idnumber]': payload.'courses[0][idnumber]')if (!isEmpty(payload.'courses[0][idnumber]')),
+    'courses[0][summary]': payload.'courses[0][summary]',
+    'courses[0][summaryformat]': payload.'courses[0][summaryformat]',
+    'courses[0][format]': payload.'courses[0][format]',
+    'courses[0][showgrades]': payload.'courses[0][showgrades]',
+    'courses[0][newsitems]': payload.'courses[0][newsitems]',
+    'courses[0][startdate]': payload.'courses[0][startdate]',
+    'courses[0][enddate]': payload.'courses[0][enddate]',
+    'courses[0][numsections]': payload.'courses[0][numsections]',
+    'courses[0][maxbytes]': payload.'courses[0][maxbytes]',
+    'courses[0][showreports]': payload.'courses[0][showreports]',
+    'courses[0][visible]': payload.'courses[0][visible]',
+    'courses[0][hiddensections]': payload.'courses[0][hiddensections]',
+    'courses[0][groupmode]': payload.'courses[0][groupmode]',
+    'courses[0][groupmodeforce]': payload.'courses[0][groupmodeforce]',
+    'courses[0][defaultgroupingid]': payload.'courses[0][defaultgroupingid]',
+    'courses[0][enablecompletion]': payload.'courses[0][enablecompletion]',
+    'courses[0][completionnotify]': payload.'courses[0][completionnotify]',
+    'courses[0][lang]': payload.'courses[0][lang]',
+    'courses[0][forcetheme]': payload.'courses[0][forcetheme]',
+    'courses[0][courseformatoptions][0][name]': payload.'courses[0][courseformatoptions][0][name]',
+    'courses[0][courseformatoptions][0][value]': payload.'courses[0][courseformatoptions][0][value]',
+    'courses[0][customfields][0][shortname]': payload.'courses[0][customfields][0][shortname]',
+    'courses[0][customfields][0][value]': payload.'courses[0][customfields][0][value]'
+}]]]></moodle-rest-lms:post-core-course-create-courses-body>
+        </moodle-rest-lms:post-core-course-create-courses>
+    </flow>
+    <flow name="post:\core_course_delete_categories:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="86cda03a-773d-4540-b412-b140c6773fbf" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_course_delete_categories">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="f9699417-2c94-4d88-a707-af25ac1edd3e" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-course-delete-categories doc:name="Delete Course Categories" doc:id="10d4e6e1-0203-4c3a-b1a9-d7f4f7a65f20" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-course-delete-categories-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                      
+    wsfunction: "core_course_delete_categories",
+    moodlewsrestformat: "json",
+    "categories[0][id]": payload.'categories[0][id]',                  
+    "categories[0][newparent]": payload.'categories[0][newparent]',  
+    "categories[0][recursive]": payload.'categories[0][recursive]'    
+}]]]></moodle-rest-lms:post-core-course-delete-categories-body>
+        </moodle-rest-lms:post-core-course-delete-categories>
+    </flow>
+    <flow name="post:\core_course_delete_courses:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="595b0fbf-3234-43e2-946a-69d0f31fe5a4" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_course_delete_courses">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="560516bf-7bfd-46eb-9f16-0780b72a1613" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-course-delete-courses doc:name="Delete Courses" doc:id="3eaf23dd-d3d0-401a-b3d0-7efad6f1a498" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-course-delete-courses-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    "courseids[0]": payload.'courseids[0]'        
+}]]]></moodle-rest-lms:post-core-course-delete-courses-body>
+        </moodle-rest-lms:post-core-course-delete-courses>
+    </flow>
+    <flow name="post:\core_course_get_categories:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="bf595724-8b80-41e7-b0af-1d9cefe151c4" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_course_get_categories">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]">
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="a0cbc8d9-888f-4466-8e67-2ff00da696df" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-course-get-categories doc:name="Get Course Categories" doc:id="bf17a795-a3cb-449a-bb38-d6aa8e3d5ce4" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-course-get-categories-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                         
+    wsfunction: "core_course_get_categories",
+    moodlewsrestformat: "json",
+    "criteria[0][key]": payload.'criteria[0][key]',           
+    "criteria[0][value]": payload.'criteria[0][value]',      
+    addsubcategories: payload.addsubcategories         
+}]]]></moodle-rest-lms:post-core-course-get-categories-body>
+        </moodle-rest-lms:post-core-course-get-categories>
+    </flow>
+    <flow name="post:\core_course_get_courses:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="76581488-35eb-42af-8e74-c1a8c5b7992a" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_course_get_courses">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="69f1c887-8189-4c39-bd6b-8bf9faa6a89a" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-course-get-courses doc:name="Get Courses" doc:id="ccff0211-d8db-4324-84be-f64b3678f774" config-ref="Moodle_Rest_Lms_Config">
+            <ee:repeatable-file-store-stream bufferUnit="MB" />
+            <moodle-rest-lms:post-core-course-get-courses-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,            
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json"
+}]]]></moodle-rest-lms:post-core-course-get-courses-body>
+        </moodle-rest-lms:post-core-course-get-courses>
+    </flow>
+    <flow name="post:\core_course_get_courses_by_field:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="b9c1335e-a456-4688-b9ac-6af7488663a8" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_course_get_courses_by_field">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="6e9f9337-e9d3-4126-81ee-fbc79f44bf94" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-course-get-courses-by-field doc:name="Get Courses by Field" doc:id="2cd092ef-b933-4b5d-b29d-3854f0d09fca" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-course-get-courses-by-field-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    "wstoken": vars.moodleToken,              
+    "wsfunction": payload.wsfunction,
+    "moodlewsrestformat": "json",
+    ("field": payload.field) if (!isEmpty(payload.field)),
+    ("values[0]": payload.'values[0]') if (!isEmpty(payload.'values[0]'))
+}]]]></moodle-rest-lms:post-core-course-get-courses-by-field-body>
+        </moodle-rest-lms:post-core-course-get-courses-by-field>
+    </flow>
+    <flow name="post:\core_course_update_categories:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="50291be8-3eda-4717-81c1-8b4faed8a716" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_course_update_categories">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default  error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="3a07d070-9aaa-4f89-818b-9be64d43ebbd" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-course-update-categories doc:name="Update Course Categories" doc:id="45941a6d-fda4-4f01-a950-15b46c095168" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-course-update-categories-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                    
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    "categories[0][id]": payload.'categories[0][id]',                  
+    "categories[0][name]": payload.'categories[0][name]',            
+    "categories[0][idnumber]": payload.'categories[0][idnumber]',      
+    "categories[0][parent]": payload.'categories[0][parent]',          
+    "categories[0][description]": payload.'categories[0][description]',
+    "categories[0][descriptionformat]": payload.'categories[0][descriptionformat]',
+    "categories[0][theme]": payload.'categories[0][theme]'
+}]]]></moodle-rest-lms:post-core-course-update-categories-body>
+        </moodle-rest-lms:post-core-course-update-categories>
+    </flow>
+    <flow name="post:\core_course_update_courses:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="e6ce547d-7242-49af-9961-3de24f4c9dc0" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_course_update_courses">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="58db1f1c-96ca-4879-b0ac-e15542c25da7" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-course-update-courses doc:name="Update Courses" doc:id="4661fc66-3ebb-4054-bcfa-93e2b7863177" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-course-update-courses-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                    
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    "courses[0][id]": payload.'courses[0][id]',
+    "courses[0][fullname]": payload.'courses[0][fullname]',
+    "courses[0][shortname]": payload.'courses[0][shortname]',
+    "courses[0][categoryid]": payload.'courses[0][categoryid]',
+    "courses[0][idnumber]": payload.'courses[0][idnumber]',
+    "courses[0][summary]": payload.'courses[0][summary]',
+    "courses[0][summaryformat]": payload.'courses[0][summaryformat]',
+    "courses[0][format]": payload.'courses[0][format]',
+    "courses[0][showgrades]": payload.'courses[0][showgrades]',
+    "courses[0][newsitems]": payload.'courses[0][newsitems]',
+    "courses[0][startdate]": payload.'courses[0][startdate]',
+    "courses[0][enddate]": payload.'courses[0][enddate]',
+    "courses[0][numsections]": payload.'courses[0][numsections]',
+    "courses[0][maxbytes]": payload.'courses[0][maxbytes]',
+    "courses[0][showreports]": payload.'courses[0][showreports]',
+    "courses[0][visible]": payload.'courses[0][visible]',
+    "courses[0][hiddensections]": payload.'courses[0][hiddensections]',
+    "courses[0][groupmode]": payload.'courses[0][groupmode]',
+    "courses[0][groupmodeforce]": payload.'courses[0][groupmodeforce]',
+    "courses[0][defaultgroupingid]": payload.'courses[0][defaultgroupingid]',
+    "courses[0][enablecompletion]": payload.'courses[0][enablecompletion]',
+    "courses[0][completionnotify]": payload.'courses[0][completionnotify]',
+    "courses[0][lang]": payload.'courses[0][lang]',
+    "courses[0][forcetheme]": payload.'courses[0][forcetheme]',
+    "courses[0][courseformatoptions][0][name]": payload.'courses[0][courseformatoptions][0][name]',
+    "courses[0][courseformatoptions][0][value]": payload.'courses[0][courseformatoptions][0][value]',
+    "courses[0][customfields][0][shortname]": payload.'courses[0][customfields][0][shortname]',
+    "courses[0][customfields][0][value]": payload.'courses[0][customfields][0][value]'
+}]]]></moodle-rest-lms:post-core-course-update-courses-body>
+        </moodle-rest-lms:post-core-course-update-courses>
+    </flow>
+    <flow name="post:\core_enrol_get_enrolled_users:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="dc7f73c7-7e89-419b-a608-d10f5c7f06e9" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_enrol_get_enrolled_users">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="14ceb59e-51ad-41c6-b09c-1b4fe800b8ce" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-enrol-get-enrolled-users doc:name="Get Enrolled Users" doc:id="420343ed-3b7a-4f7b-9d25-fe3b7f42224d" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-enrol-get-enrolled-users-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,           
+    wsfunction: "core_enrol_get_enrolled_users",
+    moodlewsrestformat: "json",
+    courseid: payload.courseid               
+}]]]></moodle-rest-lms:post-core-enrol-get-enrolled-users-body>
+        </moodle-rest-lms:post-core-enrol-get-enrolled-users>
+    </flow>
+    <flow name="post:\core_enrol_get_users_courses:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="4816ba33-4845-43db-bc28-f4451bc4b3fa" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_enrol_get_users_courses">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="dbc3bd86-a7d4-49a1-a41b-53b0f320ac99" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-enrol-get-users-courses doc:name="Get User''s Enrolled Courses" doc:id="d091975b-c148-4241-9bc0-f6e4cc95b469" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-enrol-get-users-courses-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,               
+    wsfunction: "core_enrol_get_users_courses",
+    moodlewsrestformat: "json",
+    userid: payload.userid,                  
+    returnusercount: payload.returnusercount
+}]]]></moodle-rest-lms:post-core-enrol-get-users-courses-body>
+        </moodle-rest-lms:post-core-enrol-get-users-courses>
+    </flow>
+    <flow name="post:\core_enrol_unenrol_user_enrolment:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="6f64017b-c892-47e3-acac-cc9f526b0286" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_enrol_unenrol_user_enrolment">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="5522bfcc-7891-4984-81a5-e5d63b52c3f9" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-enrol-unenrol-user-enrolment doc:name="Unenrol User by Enrolment ID" doc:id="d46e490d-3311-4ca0-b75d-95c3c73b10d2" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-enrol-unenrol-user-enrolment-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,     
+    wsfunction: "core_enrol_unenrol_user_enrolment",
+    moodlewsrestformat: "json",
+    ueid: payload.ueid               
+}]]]></moodle-rest-lms:post-core-enrol-unenrol-user-enrolment-body>
+        </moodle-rest-lms:post-core-enrol-unenrol-user-enrolment>
+    </flow>
+    <flow name="post:\core_group_add_group_members:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="7cba525e-8fac-41fa-b504-2e1fc729a6e5" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_add_group_members">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="569c74dc-bc05-4cee-83b0-e97c62aac4f8" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-add-group-members doc:name="Create core group add group members" doc:id="8fb4392a-cac7-43c2-a43d-d2f5a6807bd1" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-add-group-members-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,               
+    wsfunction: "core_group_add_group_members",
+    moodlewsrestformat: "json",
+
+    "members[0][groupid]": payload.'members[0][groupid]',
+    "members[0][userid]": payload.'members[0][userid]'
+}]]]></moodle-rest-lms:post-core-group-add-group-members-body>
+        </moodle-rest-lms:post-core-group-add-group-members>
+    </flow>
+    <flow name="post:\core_group_assign_grouping:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="2d77f08c-0c05-4a5c-b369-a0deb364003d" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_assign_grouping">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="b07361c3-4be3-4dcd-b840-d576cd11c503" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-assign-grouping doc:name="Create core group assign grouping" doc:id="d78a1f93-4cc3-41d2-b995-52355d4facb2" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-assign-grouping-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                  
+    wsfunction: "core_group_assign_grouping",
+    moodlewsrestformat: "json",
+
+    "assignments[0][groupingid]": payload.'assignments[0][groupingid]',
+    "assignments[0][groupid]": payload.'assignments[0][groupid]'
+}]]]></moodle-rest-lms:post-core-group-assign-grouping-body>
+        </moodle-rest-lms:post-core-group-assign-grouping>
+    </flow>
+    <flow name="post:\core_group_create_groupings:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="8e5eb1fb-20eb-4051-b074-f1d84705991e" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_create_groupings">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="e4360643-cb9f-43e6-a1fd-16161a305fa6" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-create-groupings doc:name="Create core group create groupings" doc:id="5fc16aa2-319c-4585-9017-8c38ad1f5742" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-create-groupings-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                       
+    wsfunction: "core_group_create_groupings",
+    moodlewsrestformat: "json",
+
+    "groupings[0][courseid]": payload.'groupings[0][courseid]',
+    "groupings[0][name]": payload.'groupings[0][name]',
+    "groupings[0][description]": payload.'groupings[0][description]',
+    "groupings[0][descriptionformat]": payload.'groupings[0][descriptionformat]',
+    "groupings[0][idnumber]": payload.'groupings[0][idnumber]'
+}]]]></moodle-rest-lms:post-core-group-create-groupings-body>
+        </moodle-rest-lms:post-core-group-create-groupings>
+    </flow>
+    <flow name="post:\core_group_create_groups:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="aded3ed7-26be-4dec-832e-8e083df9d583" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_create_groups">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="5170d7e2-39f8-4b05-836f-52bcaed56f40" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-create-groups doc:name="Create Groups" doc:id="7cf04f94-7e7a-4e1e-8a92-29f7c037b662" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-create-groups-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: "core_group_create_groups",
+    moodlewsrestformat: "json",
+    'groups[0][courseid]': payload.'groups[0][courseid]',
+    'groups[0][name]': payload.'groups[0][name]',
+    'groups[0][description]': payload.'groups[0][description]',
+    'groups[0][descriptionformat]': payload.'groups[0][descriptionformat]',
+    'groups[0][idnumber]': payload.'groups[0][idnumber]'
+}]]]></moodle-rest-lms:post-core-group-create-groups-body>
+        </moodle-rest-lms:post-core-group-create-groups>
+    </flow>
+    <flow name="post:\core_group_delete_group_members:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="4f642c63-ab94-4012-8d49-d4eab31d1813" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_delete_group_members">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="677f7fa6-a1b3-4f46-ab8c-dfc248505921" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-delete-group-members doc:name="Create core group delete group members" doc:id="dc348e70-af65-4f45-a22f-a1df3362905d" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-delete-group-members-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,               
+    wsfunction: "core_group_delete_group_members",
+    moodlewsrestformat: "json",
+
+    "members[0][userid]": payload.'members[0][userid]',
+    "members[0][groupid]": payload.'members[0][groupid]'
+}]]]></moodle-rest-lms:post-core-group-delete-group-members-body>
+        </moodle-rest-lms:post-core-group-delete-group-members>
+    </flow>
+    <flow name="post:\core_group_delete_groupings:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="a8f44c31-6664-4817-a18e-8411472e05a2" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_delete_groupings">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="9ca7254a-b03a-4b47-8bed-c59c6af586dc" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-delete-groupings doc:name="Create core group delete groupings" doc:id="c1e6ba95-8f31-4a29-b00e-473352367442" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-delete-groupings-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,             
+    wsfunction: "core_group_delete_groupings",
+    moodlewsrestformat: "json",
+    "groupingids[0]": payload.'groupingids[0]'
+}]]]></moodle-rest-lms:post-core-group-delete-groupings-body>
+        </moodle-rest-lms:post-core-group-delete-groupings>
+    </flow>
+    <flow name="post:\core_group_delete_groups:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="11d551d5-b1a2-4069-bf0d-8d0444efd6e7" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_delete_groups">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="f393906a-82de-4bf7-bdd6-c926f07f0235" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-delete-groups doc:name="Delete Groups" doc:id="e1a2655b-0971-4fad-84af-7e92674dbe76" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-delete-groups-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,              
+    wsfunction: "core_group_delete_groups",
+    moodlewsrestformat: "json",
+    "groupids[0]": payload.'groupids[0]',      
+    "groupids[1]": payload.'groupids[1]'       
+}]]]></moodle-rest-lms:post-core-group-delete-groups-body>
+        </moodle-rest-lms:post-core-group-delete-groups>
+    </flow>
+    <flow name="post:\core_group_get_course_groupings:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="aa6bee53-dde6-4b1a-a757-3fbffabf5e67" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_get_course_groupings">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="46e70b94-1c7b-494d-a3f7-599b3280081d" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-get-course-groupings doc:name="Get Course Groupings" doc:id="ac05a388-3f05-4167-9d82-99446f805343" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-get-course-groupings-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,           
+    wsfunction: "core_group_get_course_groupings",
+    moodlewsrestformat: "json",
+    courseid: payload.courseid          
+}]]]></moodle-rest-lms:post-core-group-get-course-groupings-body>
+        </moodle-rest-lms:post-core-group-get-course-groupings>
+    </flow>
+    <flow name="post:\core_group_get_course_groups:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="f4d1b523-5da8-4fa6-b718-03bff967a8b4" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_get_course_groups">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="3e497678-9a9c-4951-b992-9ea689f3f983" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-get-course-groups doc:name="Get Groups in Course" doc:id="ab3ded9a-7cbc-4528-89c1-6fbe44d63312" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-get-course-groups-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,           
+    wsfunction: "core_group_get_course_groups",
+    moodlewsrestformat: "json",
+    courseid: payload.courseid          
+}]]]></moodle-rest-lms:post-core-group-get-course-groups-body>
+        </moodle-rest-lms:post-core-group-get-course-groups>
+    </flow>
+    <flow name="post:\core_group_get_group_members:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="440463a0-f865-4b50-86c3-2351dc36e3e1" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_get_group_members">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="24418436-b291-479c-bd2f-b455465f38fb" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-get-group-members doc:name="Create core group get group members" doc:id="4051acd4-50eb-4b4c-96d1-18eaded0b484" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-get-group-members-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,          
+    wsfunction: "core_group_get_group_members",
+    moodlewsrestformat: "json",
+
+    "groupids[0]": payload.'groupids[0]'
+}]]]></moodle-rest-lms:post-core-group-get-group-members-body>
+        </moodle-rest-lms:post-core-group-get-group-members>
+    </flow>
+    <flow name="post:\core_group_get_groups:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="2437b35a-9b58-4e12-af80-10f2eccb4f94" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_get_groups">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="04ae9956-1570-4c6d-acf6-f5edca8e79b5" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-get-groups doc:name="Get Group Details" doc:id="d7b5b835-879e-4c54-af2c-72e5c47a964a" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-get-groups-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,           
+    wsfunction: "core_group_get_groups",
+    moodlewsrestformat: "json",
+    'groupids[0]': payload.'groupids[0]' 
+}]]]></moodle-rest-lms:post-core-group-get-groups-body>
+        </moodle-rest-lms:post-core-group-get-groups>
+    </flow>
+    <flow name="post:\core_group_unassign_grouping:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="36f16ed0-5064-481a-bc9f-11e90630ce1e" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_unassign_grouping">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="9b055375-440f-48d7-bf18-c30def62f5e8" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-unassign-grouping doc:name="Create core group unassign grouping" doc:id="3ca0404a-c04f-4f2a-b210-c285f7b12aa7" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-unassign-grouping-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,                     
+    wsfunction: "core_group_unassign_grouping",
+    moodlewsrestformat: "json",
+    'unassignments[0][groupid]': payload.'unassignments[0][groupid]',     
+    'unassignments[0][groupingid]': payload.'unassignments[0][groupingid]' 
+}]]]></moodle-rest-lms:post-core-group-unassign-grouping-body>
+        </moodle-rest-lms:post-core-group-unassign-grouping>
+    </flow>
+    <flow name="post:\core_group_update_groupings:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="8a4ebdbb-d0cf-4fd3-bf47-04549f8e8b72" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_update_groupings">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="88aa4eaf-4cda-4fbb-b970-453708e9062c" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-update-groupings doc:name="Update Groupings" doc:id="4295fafe-1bdd-436a-b894-9de16cdf779a" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-update-groupings-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: "core_group_update_groupings",
+    moodlewsrestformat: "json",
+    "groupings[0][id]": payload.'groupings[0][id]',
+    "groupings[0][name]": payload.'groupings[0][name]',
+    "groupings[0][description]": payload.'groupings[0][description]',
+    "groupings[0][descriptionformat]": payload.'groupings[0][descriptionformat]',
+    "groupings[0][idnumber]": payload.'groupings[0][idnumber]',
+    "groupings[0][customfields][0][shortname]": payload.'groupings[0][customfields][0][shortname]',
+    "groupings[0][customfields][0][value]": payload.'groupings[0][customfields][0][value]'
+}]]]></moodle-rest-lms:post-core-group-update-groupings-body>
+        </moodle-rest-lms:post-core-group-update-groupings>
+    </flow>
+    <flow name="post:\core_group_update_groups:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="3a8996f1-0139-4b80-a8e2-da4bbf3f8a88" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_group_update_groups">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="f7403394-8fde-4f20-9c62-61d0be7e9deb" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-group-update-groups doc:name="Update Groups" doc:id="06f15585-ab7f-4f0b-a7db-dd41d176c852" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-group-update-groups-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: "core_group_update_groups",
+    moodlewsrestformat: "json",
+    "groups[0][id]": payload.'groups[0][id]',
+    "groups[0][name]": payload.'groups[0][name]',
+    "groups[0][description]": payload.'groups[0][description]',
+    "groups[0][descriptionformat]": payload.'groups[0][descriptionformat]',
+    "groups[0][enrolmentkey]": payload.'groups[0][enrolmentkey]',
+    "groups[0][idnumber]": payload.'groups[0][idnumber]',
+    "groups[0][visibility]": payload.'groups[0][visibility]',
+    "groups[0][participation]": payload.'groups[0][participation]',
+    "groups[0][customfields][0][shortname]": payload.'groups[0][customfields][0][shortname]',
+    "groups[0][customfields][0][value]": payload.'groups[0][customfields][0][value]'
+}]]]></moodle-rest-lms:post-core-group-update-groups-body>
+        </moodle-rest-lms:post-core-group-update-groups>
+    </flow>
+    <flow name="post:\core_role_assign_roles:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="fba62caf-55dc-441e-9099-9599a645dbba" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_role_assign_roles">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="972a9b76-864e-465c-83e1-ff354898877f" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-role-assign-roles doc:name="Assign Roles" doc:id="a57280be-a49f-49cd-973e-7d9b4b170991" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-role-assign-roles-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    "assignments[0][roleid]": payload.'assignments[0][roleid]',
+    "assignments[0][userid]": payload.'assignments[0][userid]',
+    "assignments[0][contextid]": payload.'assignments[0][contextid]',
+    "assignments[0][contextlevel]": payload.'assignments[0][contextlevel]',
+    "assignments[0][instanceid]": payload.'assignments[0][instanceid]'
+}]]]></moodle-rest-lms:post-core-role-assign-roles-body>
+        </moodle-rest-lms:post-core-role-assign-roles>
+    </flow>
+    <flow name="post:\core_role_unassign_roles:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="799d0721-5a04-43e3-b82a-a40b44e0cb31" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_role_unassign_roles">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="1efd1fcf-0acc-43c7-9f74-84e920a45640" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-role-unassign-roles doc:name="Unassign Roles" doc:id="4ff68f76-2cf1-41a5-aa72-5f1e469f728c" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-role-unassign-roles-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    "unassignments[0][roleid]": payload.'unassignments[0][roleid]',
+    "unassignments[0][userid]": payload.'unassignments[0][userid]',
+    "unassignments[0][contextid]": payload.'unassignments[0][contextid]',
+    "unassignments[0][contextlevel]": payload.'unassignments[0][contextlevel]',
+    "unassignments[0][instanceid]": payload.'unassignments[0][instanceid]'
+}]]]></moodle-rest-lms:post-core-role-unassign-roles-body>
+        </moodle-rest-lms:post-core-role-unassign-roles>
+    </flow>
+    <flow name="post:\core_user_create_users:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="a0370ce0-e804-415a-b71d-4a141b4497d1" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_user_create_users">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="b99c950e-686a-4349-8e91-d54eed8ba3d2" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-user-create-users doc:name="Create core user create users" doc:id="5dd177d9-eaa4-451f-ac51-fb01bad0470b" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-user-create-users-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: "core_user_create_users",
+    moodlewsrestformat: "json",
+    "users[0][createpassword]": payload."users[0][createpassword]",
+    "users[0][username]": payload."users[0][username]",
+    "users[0][auth]": payload."users[0][auth]",
+    "users[0][password]": payload."users[0][password]",
+    "users[0][firstname]": payload."users[0][firstname]",
+    "users[0][lastname]": payload."users[0][lastname]",
+    "users[0][email]": payload."users[0][email]",
+    "users[0][maildisplay]": payload."users[0][maildisplay]",
+    "users[0][city]": payload."users[0][city]",
+    "users[0][country]": payload."users[0][country]",
+    "users[0][timezone]": payload."users[0][timezone]",
+    "users[0][description]": payload."users[0][description]",
+    "users[0][firstnamephonetic]": payload."users[0][firstnamephonetic]",
+    "users[0][lastnamephonetic]": payload."users[0][lastnamephonetic]",
+    "users[0][middlename]": payload."users[0][middlename]",
+    "users[0][alternatename]": payload."users[0][alternatename]",
+    "users[0][interests]": payload."users[0][interests]",
+    "users[0][idnumber]": payload."users[0][idnumber]",
+    "users[0][institution]": payload."users[0][institution]",
+    "users[0][department]": payload."users[0][department]",
+    "users[0][phone1]": payload."users[0][phone1]",
+    "users[0][phone2]": payload."users[0][phone2]",
+    "users[0][address]": payload."users[0][address]",
+    "users[0][lang]": payload."users[0][lang]",
+    "users[0][calendartype]": payload."users[0][calendartype]",
+    "users[0][theme]": payload."users[0][theme]",
+    "users[0][mailformat]": payload."users[0][mailformat]",
+    "users[0][customfields][0][type]": payload."users[0][customfields][0][type]",
+    "users[0][customfields][0][value]": payload."users[0][customfields][0][value]",
+    "users[0][preferences][0][type]": payload."users[0][preferences][0][type]",
+    "users[0][preferences][0][value]": payload."users[0][preferences][0][value]"
+}]]]></moodle-rest-lms:post-core-user-create-users-body>
+        </moodle-rest-lms:post-core-user-create-users>
+    </flow>
+    <flow name="post:\core_user_delete_users:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="ecbc7626-666b-4821-b199-dc366c52268e" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_user_delete_users">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="a09c3d06-3b17-4367-95f3-d2008eb605f6" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-user-delete-users doc:name="Create core user delete users" doc:id="3b30da3a-f23d-4ea9-9bd3-def9940e0a28" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-user-delete-users-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: "core_user_delete_users",
+    moodlewsrestformat: "json",
+    "userids[0]": payload.'userids[0]'
+}]]]></moodle-rest-lms:post-core-user-delete-users-body>
+        </moodle-rest-lms:post-core-user-delete-users>
+    </flow>
+    <flow name="post:\core_user_get_users:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="ff3c3efc-797c-4e73-b215-f4e86ab88fbd" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_user_get_users">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="fc838712-b4a3-4eb2-accd-49cc66286c4e" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-user-get-users doc:name="Create core user get users" doc:id="3bc3a9d8-fb9f-4f57-9710-9e070e784c21" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-user-get-users-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: "core_user_get_users",
+    moodlewsrestformat: "json",
+    "criteria[0][key]": payload.'criteria[0][key]',
+    "criteria[0][value]": payload.'criteria[0][value]'
+}]]]></moodle-rest-lms:post-core-user-get-users-body>
+        </moodle-rest-lms:post-core-user-get-users>
+    </flow>
+    <flow name="post:\core_user_get_users_by_field:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="9b66201c-c1b1-421c-8bae-d94601cdcfe7" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_user_get_users_by_field">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="88c9f5a8-bfe5-48cf-bf1c-5fec44106587" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-user-get-users-by-field doc:name="Create core user get users by field" doc:id="bfb07ba9-8293-4538-8d69-0596ae2b3029" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-user-get-users-by-field-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    (field: payload.field) if (!isEmpty(payload.field)),
+    ("values[0]": payload.'values[0]') if (!isEmpty(payload.'values[0]'))
+}]]]></moodle-rest-lms:post-core-user-get-users-by-field-body>
+        </moodle-rest-lms:post-core-user-get-users-by-field>
+    </flow>
+    <flow name="post:\core_user_update_users:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="17d1ee39-7506-44a7-a99e-bf6bee4e4ff8" config-ref="moodle-rest-lms-httpListenerConfig" path="/core_user_update_users">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="84194646-6107-46d0-9764-1f23fcf30b94" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-core-user-update-users doc:name="Create core user update users" doc:id="96dc08d3-d034-4ca3-86b4-20abee458354" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-core-user-update-users-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: "core_user_update_users",
+    moodlewsrestformat: "json",
+ 
+    "users[0][id]": payload.'users[0][id]',
+    "users[0][username]": payload.'users[0][username]',
+    "users[0][auth]": payload.'users[0][auth]',
+    "users[0][suspended]": payload.'users[0][suspended]',
+    "users[0][password]": payload.'users[0][password]',
+    "users[0][firstname]": payload.'users[0][firstname]',
+    "users[0][lastname]": payload.'users[0][lastname]',
+    "users[0][email]": payload.'users[0][email]',
+    "users[0][maildisplay]": payload.'users[0][maildisplay]',
+    "users[0][city]": payload.'users[0][city]',
+    "users[0][country]": payload.'users[0][country]',
+    "users[0][timezone]": payload.'users[0][timezone]',
+    "users[0][description]": payload.'users[0][description]',
+    "users[0][userpicture]": payload.'users[0][userpicture]',
+    "users[0][firstnamephonetic]": payload.'users[0][firstnamephonetic]',
+    "users[0][lastnamephonetic]": payload.'users[0][lastnamephonetic]',
+    "users[0][middlename]": payload.'users[0][middlename]',
+    "users[0][alternatename]": payload.'users[0][alternatename]',
+    "users[0][interests]": payload.'users[0][interests]',
+    "users[0][idnumber]": payload.'users[0][idnumber]',
+    "users[0][institution]": payload.'users[0][institution]',
+    "users[0][department]": payload.'users[0][department]',
+    "users[0][phone1]": payload.'users[0][phone1]',
+    "users[0][phone2]": payload.'users[0][phone2]',
+    "users[0][address]": payload.'users[0][address]',
+    "users[0][lang]": payload.'users[0][lang]',
+    "users[0][calendartype]": payload.'users[0][calendartype]',
+    "users[0][theme]": payload.'users[0][theme]',
+    "users[0][mailformat]": payload.'users[0][mailformat]',
+ 
+    // Custom fields
+    "users[0][customfields][0][type]": payload.'users[0][customfields][0][type]',
+    "users[0][customfields][0][value]": payload.'users[0][customfields][0][value]',
+ 
+    // Preferences
+    "users[0][preferences][0][type]": payload.'users[0][preferences][0][type]',
+    "users[0][preferences][0][value]": payload.'users[0][preferences][0][value]'
+}]]]></moodle-rest-lms:post-core-user-update-users-body>
+        </moodle-rest-lms:post-core-user-update-users>
+    </flow>
+    <flow name="post:\enrol_manual_enrol_users:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="33eee6b7-7308-40d4-9199-4eb03279abce" config-ref="moodle-rest-lms-httpListenerConfig" path="/enrol_manual_enrol_users">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="f3ac007f-1c8e-43c9-bbf9-a39312af53ae" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-enrol-manual-enrol-users doc:name="Enroll Users" doc:id="36a92fa5-ae2a-4f11-975a-c54e006f0354" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-enrol-manual-enrol-users-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: "enrol_manual_enrol_users",
+    moodlewsrestformat: "json",
+ 
+    "enrolments[0][roleid]": payload.'enrolments[0][roleid]',
+    "enrolments[0][userid]": payload.'enrolments[0][userid]',
+    "enrolments[0][courseid]": payload.'enrolments[0][courseid]'
+}]]]></moodle-rest-lms:post-enrol-manual-enrol-users-body>
+        </moodle-rest-lms:post-enrol-manual-enrol-users>
+    </flow>
+    <flow name="post:\enrol_manual_unenrol_users:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="097a192e-dd9b-49f6-bc87-4c253eedc1c1" config-ref="moodle-rest-lms-httpListenerConfig" path="/enrol_manual_unenrol_users">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="780abc85-0877-4757-9c48-36e8192f76da" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-enrol-manual-unenrol-users doc:name="Unenroll Users" doc:id="110665e2-d00e-45f1-9cf2-45db031aa6fb" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-enrol-manual-unenrol-users-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: "enrol_manual_unenrol_users",
+    moodlewsrestformat: "json",
+ 
+    "enrolments[0][userid]": payload.'enrolments[0][userid]',
+    "enrolments[0][courseid]": payload.'enrolments[0][courseid]'
+}]]]></moodle-rest-lms:post-enrol-manual-unenrol-users-body>
+        </moodle-rest-lms:post-enrol-manual-unenrol-users>
+    </flow>
+    <flow name="post:\gradereport_overview_get_course_grades:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="a488504a-e003-4cf3-bf6d-bff476c3a7a7" config-ref="moodle-rest-lms-httpListenerConfig" path="/gradereport_overview_get_course_grades">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="a1a1e967-5dab-4880-8f89-bc4fb6e52be4" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-gradereport-overview-get-course-grades doc:name="Get Course Grades" doc:id="8c903ee5-c146-4392-8867-a7295206444a" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-gradereport-overview-get-course-grades-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: payload.wsfunction,
+    (moodlewsrestformat: payload.moodlewsrestformat) if (!isEmpty(payload.moodlewsrestformat)),
+    (userid: payload.userid) if (!isEmpty(payload.userid))
+}]]]></moodle-rest-lms:post-gradereport-overview-get-course-grades-body>
+        </moodle-rest-lms:post-gradereport-overview-get-course-grades>
+    </flow>
+    <flow name="post:\gradereport_user_get_grade_items:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="89be6832-7721-4dc6-ac15-11f3010b5cc1" config-ref="moodle-rest-lms-httpListenerConfig" path="/gradereport_user_get_grade_items">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="b82f46e9-b3b2-4232-a5e7-015425e3460f" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-gradereport-user-get-grade-items doc:name="Get Grade Items" doc:id="d130a72d-f4cf-4ca9-bb57-cf34b7b027dd" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-gradereport-user-get-grade-items-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    courseid: payload.courseid,
+    userid: payload.userid
+}]]]></moodle-rest-lms:post-gradereport-user-get-grade-items-body>
+        </moodle-rest-lms:post-gradereport-user-get-grade-items>
+    </flow>
+    <flow name="post:\mod_assign_get_assignments:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="f1bf055c-a0fc-4096-9060-6f659dbbb319" config-ref="moodle-rest-lms-httpListenerConfig" path="/mod_assign_get_assignments">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="ffc0d49b-ee22-4867-baf1-e61c65fa941e" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-mod-assign-get-assignments doc:name="Get all the course assignments" doc:id="28998602-6f33-4b44-bc73-2bb0f6d24943" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-mod-assign-get-assignments-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: payload.wsfunction,
+    (moodlewsrestformat: payload.moodlewsrestformat) if(!isEmpty(payload.moodlewsrestformat)),
+    ('courseids[0]': payload.'courseids[0]') if(!isEmpty(payload.'courseids[0]'))
+    
+}]]]></moodle-rest-lms:post-mod-assign-get-assignments-body>
+        </moodle-rest-lms:post-mod-assign-get-assignments>
+    </flow>
+    <flow name="post:\mod_assign_get_grades:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="915c6ba7-74a3-4eb3-95a6-5cbf44bb71c1" config-ref="moodle-rest-lms-httpListenerConfig" path="/mod_assign_get_grades">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="3d3189a3-6bf3-4c87-9f15-6a69c12a2b5d" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-mod-assign-get-grades doc:name="Get assignment grades" doc:id="30568b48-0658-4557-b1fb-55067e5d92d1" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-mod-assign-get-grades-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    'assignmentids[0]': payload.'assignmentids[0]'
+}]]]></moodle-rest-lms:post-mod-assign-get-grades-body>
+        </moodle-rest-lms:post-mod-assign-get-grades>
+    </flow>
+    <flow name="post:\mod_assign_get_submission_status:application\x-www-form-urlencoded:moodle-rest-lms-config">
+        <http:listener doc:name="Listener" doc:id="4a9eb24e-d3cb-4c31-a1c2-addb521b9791" config-ref="moodle-rest-lms-httpListenerConfig" path="/mod_assign_get_submission_status">
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+			<http:error-response statusCode="#[vars.httpStatus default 500]" >
+				<http:body ><![CDATA[#[output application/json --- payload default error.description]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<flow-ref doc:name="Flow Reference" doc:id="c2921de0-b9c8-46d9-9966-b4f16d2774c4" name="moodle-rest-lmsSub_Flow" />
+        <moodle-rest-lms:post-mod-assign-get-submission-status doc:name="Get assignment submissions" doc:id="1ce6b083-ba9e-4310-b619-0aef8ad6b105" config-ref="Moodle_Rest_Lms_Config">
+            <moodle-rest-lms:post-mod-assign-get-submission-status-body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    wstoken: vars.moodleToken,
+    wsfunction: payload.wsfunction,
+    moodlewsrestformat: "json",
+    assignid: payload.assignid,
+    userid: payload.userid
+}]]]></moodle-rest-lms:post-mod-assign-get-submission-status-body>
+        </moodle-rest-lms:post-mod-assign-get-submission-status>
+    </flow>
+</mule>

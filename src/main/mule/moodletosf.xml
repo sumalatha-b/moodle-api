@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:moodle-rest-lms="http://www.mulesoft.org/schema/mule/moodle-rest-lms"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/moodle-rest-lms http://www.mulesoft.org/schema/mule/moodle-rest-lms/current/mule-moodle-rest-lms.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<flow name="moodleToSfCreateUpdateFlow" doc:id="7134ef9a-5c19-4010-bf75-e4ca24e8b521" >
+		<http:listener doc:name="Listener" doc:id="eaab66f7-a828-421f-a9de-d39333828b5e" config-ref="moodle-rest-lms-httpListenerConfig" path="/courses"/>
+		<logger level="INFO" doc:name="Logger" doc:id="5995be44-d3ce-4cd8-8506-aadb5ba544d1" message="Moodle to Salesforce Create &amp; Update Flow Started"/>
+		<logger level="INFO" doc:name="Logger" doc:id="2956659e-9a41-4551-9f7f-e551b061907f" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+		<moodle-rest-lms:post-core-course-get-courses-by-field doc:name="Get Courses by Field" doc:id="04943717-56ec-4c4c-906f-ce2f8ac777dc" config-ref="Moodle_Rest_Lms_Config1"/>
+		<ee:transform doc:name="Transform Message" doc:id="d2127014-fc9a-4f0f-9140-4185b35db0cb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.courses map
+{
+    
+    "Name": $.fullname,
+    "Moodle_Course_ID__c": $.id,
+    "Short_Name__c": $.shortname default "",
+    "Category_ID__c": $.categoryid as Number default 1,
+    "ID_Number__c": $.idnumber default "",
+    "Summary__c": $.summary default "",
+    "Summary_Format__c": $.summaryformat as Number default 1,
+    "Format__c": $.format default "topics",
+    "Show_Grades__c": if($.showgrades  == 1) true else false,
+    "News_Items__c": $.newsitems as Number default 5,
+    "Start_Date__c": $.startdate as Number,
+    "End_Date__c": $.enddate as Number,
+    "Number_of_Sections__c": $.numsections as Number default 10,
+    "Max_File_Size__c": $.maxbytes as Number default 2097152,
+    "Show_Reports__c": if($.showreports  == 1) true else false,
+    "Visible__c": if($.visible == 1) true else false,
+    "Hidden_Sections__c": $.hiddensections as Number default 0,
+    "Group_Mode__c": $.groupmode as Number default 1,
+    "Group_Mode_Force__c": if($.groupmodeforce ==1) true else false,
+    "Default_Grouping_ID__c": $.defaultgroupingid as Number default 0,
+    "Enable_Completion__c": if($.enablecompletion ==1) true else false,
+    "Completion_Notify__c": if($.completionnotify ==1) true else false,
+    "Forced_Language__c": if(!isEmpty($.lang)) $.lang else "en",
+    "Force_Theme__c": if(!isEmpty($.theme)) $.theme else "boost"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="a81f6ccb-3e5c-44fa-a802-9784fed9c321" message="#[payload]"/>
+		<salesforce:upsert doc:name="Upsert" doc:id="f4309e18-e881-4636-93e6-356fa2f66432" config-ref="Salesforce_Config" objectType="Moodle_Course__c" externalIdFieldName="Moodle_Course_ID__c"/>
+		<ee:transform doc:name="Transform Message" doc:id="4d63e0f8-6d76-467d-af1e-4e0ca4548b5e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="80b2a465-ea48-41ef-ab31-7555272c53c4" message="#[payload]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="50346da1-76c9-4a08-880f-ea664375a328" message="Moodle to Salesforce Create &amp; Update Flow Ended"/>
+	</flow>
+</mule>

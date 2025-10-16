@@ -60,4 +60,87 @@ payload]]></ee:set-payload>
 		<logger level="INFO" doc:name="Logger" doc:id="80b2a465-ea48-41ef-ab31-7555272c53c4" message="#[payload]"/>
 		<logger level="INFO" doc:name="Logger" doc:id="50346da1-76c9-4a08-880f-ea664375a328" message="Moodle to Salesforce Create &amp; Update Flow Ended"/>
 	</flow>
+	<flow name="moodleToSalesforceDeleteFlow" doc:id="432d2e49-af2b-4e54-9974-c871765b68fc" >
+		<http:listener doc:name="Listener" doc:id="3366ce0d-1e35-46bd-b444-c69bcc890039" config-ref="moodle-rest-lms-httpListenerConfig" path="/delete/courses/{id}"/>
+		<logger level="INFO" doc:name="Logger" doc:id="84beaf11-5986-417f-b09f-dce29a437b8d" message="Moodle to Salesforce Delete Flow Started"/>
+		<ee:transform doc:name="Transform Message" doc:id="b76a0c9d-6036-464f-99a9-d9795cd731b4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"wstoken": "02771f60ade5748fb182d17e45e72ca2",
+	"wsfunction": "core_course_get_courses_by_field",
+	"moodlewsrestformat": "json",
+	"field": "id",
+	"value": attributes.uriParams.id
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="id" ><![CDATA[attributes.uriParams.'id']]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="d6f9cfce-1b47-4136-bf2a-50926d8cec72" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+		<moodle-rest-lms:post-core-course-get-courses-by-field doc:name="Get Courses by Field" doc:id="88b272ab-2f5e-4278-81c4-482bba683173" config-ref="Moodle_Rest_Lms_Config">
+			<moodle-rest-lms:post-core-course-get-courses-by-field-body ><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+payload]]]></moodle-rest-lms:post-core-course-get-courses-by-field-body>
+		</moodle-rest-lms:post-core-course-get-courses-by-field>
+		<choice doc:name="Choice" doc:id="a4ba9fe3-a90e-4a44-912e-8fc2b7379ac7" >
+			<when expression="#[!isEmpty(payload.courses)]">
+				<ee:transform doc:name="sfRequestPayload" doc:id="030c5027-b5ff-4fcf-b3fb-9243da844588">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload.courses map
+{
+    
+    "Name": $.fullname,
+    "Moodle_Course_ID__c": $.id
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="4eb83b42-04f7-483e-9031-bf8458b1891e" message="#[payload]" />
+				<salesforce:query doc:name="Query" doc:id="724b2b00-c261-4846-8861-340f89568c27" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query><![CDATA[select id, Name from Moodle_Course__c where Name = :Name]]></salesforce:salesforce-query>
+			<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	Name : "'" ++ payload.Name[0] ++ "'"
+}]]]></salesforce:parameters>
+		</salesforce:query>
+				<ee:transform doc:name="Transform Message" doc:id="ba63ca7f-88b5-48ff-a762-386f670e21c4">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload.Id]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<choice doc:name="Choice" doc:id="935a8044-d1dd-44c9-8b22-89a38d8fb682">
+			<when expression="#[!isEmpty(payload)]">
+				<salesforce:delete doc:name="Delete" doc:id="f8c0ea6a-8030-4d71-ae25-19d03a61bba3" config-ref="Salesforce_Config" />
+				<ee:transform doc:name="Transform Message" doc:id="71efb3fa-dfee-44b4-8ebc-5f1480d225ed">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise>
+				<logger level="INFO" doc:name="Logger" doc:id="23deabcb-7acb-4075-956e-2ab8963b682d" message="empty id's" />
+			</otherwise>
+		</choice>
+				<logger level="INFO" doc:name="Logger" doc:id="83e1f764-7a28-41d8-b5e4-56cc40219772" message="#[payload]" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="dc1bc54b-da84-49de-b6f2-c1509b685a0b" message="Course not present in moodle"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="67008d19-f464-42c4-a3f2-cd5a05ae81c1" message="Moodle to Salesforce Delete Flow Ended" />
+	</flow>
 </mule>

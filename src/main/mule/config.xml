@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:moodle-rest-lms="http://www.mulesoft.org/schema/mule/moodle-rest-lms" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/moodle-rest-lms http://www.mulesoft.org/schema/mule/moodle-rest-lms/current/mule-moodle-rest-lms.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="b72c9850-9a0b-47b1-8273-213ceef00754" >
+		<salesforce:basic-connection username="aurosmit.sahoo@nexturn.com.lms.educloud" password="Aurosmit@2001" securityToken="wEpfQlYMXv8VvhsNwrGqlptQl"/>
+	</salesforce:sfdc-config>
+	<moodle-rest-lms:config name="Moodle_Rest_Lms_Config" doc:name="Moodle Rest Lms Config" doc:id="bb428336-f4a3-444d-80e2-77f204729179" >
+		<moodle-rest-lms:unsecured-connection baseUri="https://nexturn.moodlecloud.com/webservice/rest/server.php" />
+	</moodle-rest-lms:config>
+	<http:listener-config name="moodle-rest-lms-httpListenerConfig">
+        <http:listener-connection host="${https.host}" port="${https.port}" protocol="HTTPS">
+            <tls:context>
+                <tls:key-store type="jks" path="Client-Keystore.jks" keyPassword="Mule12345" password="Mule12345" />
+            </tls:context>
+        </http:listener-connection>
+    </http:listener-config>
+    <apikit:config name="moodle-rest-lms-config" api="moodle-rest-lms.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <configuration-properties doc:name="Configuration properties" doc:id="ea3c0109-5a16-4ad6-b841-e8a54f5a9635" file="config.yaml" />
+    <configuration doc:name="Configuration" doc:id="d1da357d-5df8-4058-ab56-29fb1905716b" defaultErrorHandler-ref="Global-Error-Handler" />
+	
+</mule>

@@ -6,14 +6,9 @@
 http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
 http://www.mulesoft.org/schema/mule/moodle-rest-lms http://www.mulesoft.org/schema/mule/moodle-rest-lms/current/mule-moodle-rest-lms.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="be7b3a0c-6356-43e9-ba1f-5fafa4f88ceb" >
-		<salesforce:basic-connection username="aurosmit.sahoo@nexturn.com.lms.educloud" password="Aurosmit@2001" securityToken="wEpfQlYMXv8VvhsNwrGqlptQl"/>
-	</salesforce:sfdc-config>
-	<moodle-rest-lms:config name="Moodle_Rest_Lms_Config1" doc:name="Moodle Rest Lms Config" doc:id="25120130-01be-4b2a-8cbe-b4ac65157311" >
-		<moodle-rest-lms:unsecured-connection baseUri="https://nexturn.moodlecloud.com/webservice/rest/server.php" />
-	</moodle-rest-lms:config>
+	
 	<flow name="sftomoodleCreateFlow" doc:id="53befdd5-28d8-40b1-9983-352b92ca7777" >
-		<salesforce:new-object-listener doc:name="On New Object" doc:id="bbfbe8a7-d961-45b2-be80-ce011f02fc93" config-ref="Salesforce_Config" objectType="Moodle_Course__c">
+		<salesforce:new-object-listener doc:name="On New Object" doc:id="bbfbe8a7-d961-45b2-be80-ce011f02fc93" objectType="Moodle_Course__c" config-ref="Salesforce_Config">
 			<scheduling-strategy >
 				<fixed-frequency frequency="1" timeUnit="MINUTES" />
 			</scheduling-strategy>
@@ -60,7 +55,7 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<logger level="INFO" doc:name="Logger" doc:id="63e368cd-9e4f-48b6-938f-b803d0e9eb46" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
-		<moodle-rest-lms:post-core-course-create-courses doc:name="Create Courses" doc:id="55f175d0-06d8-4cef-abce-89c1f45ba1c6" config-ref="Moodle_Rest_Lms_Config1">
+		<moodle-rest-lms:post-core-course-create-courses doc:name="Create Courses" doc:id="55f175d0-06d8-4cef-abce-89c1f45ba1c6">
 			<moodle-rest-lms:post-core-course-create-courses-body ><![CDATA[#[%dw 2.0
 output application/x-www-form-urlencoded
 ---
@@ -78,7 +73,7 @@ payload]]></ee:set-payload>
 		<logger level="INFO" doc:name="Logger" doc:id="17b0f81b-3a64-432e-9841-c14e67ff40a8" message="Salesforce to Moodle Create Flow Ended"/>
 	</flow>
 	<flow name="sftomoodleUpdateFlow" doc:id="c9d54098-7558-4583-937c-13e431464305" >
-		<salesforce:modified-object-listener doc:name="On Modified Object" doc:id="4335d4e2-a5b7-45a3-a5b4-e13c8c392c55" config-ref="Salesforce_Config" objectType="Moodle_Course__c">
+		<salesforce:modified-object-listener doc:name="On Modified Object" doc:id="4335d4e2-a5b7-45a3-a5b4-e13c8c392c55" objectType="Moodle_Course__c" config-ref="Salesforce_Config">
 			<scheduling-strategy >
 				<fixed-frequency frequency="1" timeUnit="MINUTES"/>
 			</scheduling-strategy>
@@ -126,7 +121,7 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<logger level="INFO" doc:name="Logger" doc:id="900562b6-ca0a-496c-a43f-de84d3a7eba2" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
-		<moodle-rest-lms:post-core-course-update-courses doc:name="Update Courses" doc:id="e0a2cbb8-358c-4b01-a1b2-d170cf63a085" config-ref="Moodle_Rest_Lms_Config1">
+		<moodle-rest-lms:post-core-course-update-courses doc:name="Update Courses" doc:id="e0a2cbb8-358c-4b01-a1b2-d170cf63a085">
 			<moodle-rest-lms:post-core-course-update-courses-body ><![CDATA[#[%dw 2.0
 output application/x-www-form-urlencoded
 ---
@@ -144,7 +139,7 @@ payload]]></ee:set-payload>
 		<logger level="INFO" doc:name="Logger" doc:id="b78d10f9-488e-4d44-8f0e-1474d6a1c5cb" message="Salesforce to Moodle Update Flow Ended"/>
 	</flow>
 	<flow name="sftomoodleDeleteFlow" doc:id="9f70a225-e27c-48e6-8fdd-5597565914da" >
-		<salesforce:deleted-object-listener doc:name="On Deleted Object" doc:id="9de8a6be-80c6-4241-8790-2bf5578a1d4c" config-ref="Salesforce_Config" objectType="Moodle_Course__c">
+		<salesforce:deleted-object-listener doc:name="On Deleted Object" doc:id="9de8a6be-80c6-4241-8790-2bf5578a1d4c" objectType="Moodle_Course__c" config-ref="Salesforce_Config">
 			<scheduling-strategy >
 				<fixed-frequency frequency="1" timeUnit="MINUTES"/>
 			</scheduling-strategy>
@@ -165,7 +160,7 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<logger level="INFO" doc:name="Logger" doc:id="6771f369-9d4e-4ce0-8d0e-c25f693016e3" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
-		<moodle-rest-lms:post-core-course-delete-courses doc:name="Delete Courses" doc:id="1034e60e-aeb4-4b78-952b-e872d9fde9c8" config-ref="Moodle_Rest_Lms_Config1">
+		<moodle-rest-lms:post-core-course-delete-courses doc:name="Delete Courses" doc:id="1034e60e-aeb4-4b78-952b-e872d9fde9c8">
 			<moodle-rest-lms:post-core-course-delete-courses-body ><![CDATA[#[%dw 2.0
 output application/x-www-form-urlencoded
 ---

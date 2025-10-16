@@ -11,7 +11,7 @@ http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mu
 		<http:listener doc:name="Listener" doc:id="eaab66f7-a828-421f-a9de-d39333828b5e" config-ref="moodle-rest-lms-httpListenerConfig" path="/courses"/>
 		<logger level="INFO" doc:name="Logger" doc:id="5995be44-d3ce-4cd8-8506-aadb5ba544d1" message="Moodle to Salesforce Create &amp; Update Flow Started"/>
 		<logger level="INFO" doc:name="Logger" doc:id="2956659e-9a41-4551-9f7f-e551b061907f" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
-		<moodle-rest-lms:post-core-course-get-courses-by-field doc:name="Get Courses by Field" doc:id="04943717-56ec-4c4c-906f-ce2f8ac777dc" config-ref="Moodle_Rest_Lms_Config1"/>
+		<moodle-rest-lms:post-core-course-get-courses-by-field doc:name="Get Courses by Field" doc:id="04943717-56ec-4c4c-906f-ce2f8ac777dc"/>
 		<ee:transform doc:name="Transform Message" doc:id="d2127014-fc9a-4f0f-9140-4185b35db0cb" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -48,7 +48,7 @@ payload.courses map
 			</ee:message>
 		</ee:transform>
 		<logger level="INFO" doc:name="Logger" doc:id="a81f6ccb-3e5c-44fa-a802-9784fed9c321" message="#[payload]"/>
-		<salesforce:upsert doc:name="Upsert" doc:id="f4309e18-e881-4636-93e6-356fa2f66432" config-ref="Salesforce_Config" objectType="Moodle_Course__c" externalIdFieldName="Moodle_Course_ID__c"/>
+		<salesforce:upsert doc:name="Upsert" doc:id="f4309e18-e881-4636-93e6-356fa2f66432" objectType="Moodle_Course__c" externalIdFieldName="Moodle_Course_ID__c" config-ref="Salesforce_Config"/>
 		<ee:transform doc:name="Transform Message" doc:id="4d63e0f8-6d76-467d-af1e-4e0ca4548b5e" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0

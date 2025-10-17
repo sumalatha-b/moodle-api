@@ -121,7 +121,7 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<logger level="INFO" doc:name="Logger" doc:id="900562b6-ca0a-496c-a43f-de84d3a7eba2" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
-		<moodle-rest-lms:post-core-course-update-courses doc:name="Update Courses" doc:id="e0a2cbb8-358c-4b01-a1b2-d170cf63a085">
+		<moodle-rest-lms:post-core-course-update-courses doc:name="Update Courses" doc:id="e0a2cbb8-358c-4b01-a1b2-d170cf63a085" config-ref="Moodle_Rest_Lms_Config">
 			<moodle-rest-lms:post-core-course-update-courses-body ><![CDATA[#[%dw 2.0
 output application/x-www-form-urlencoded
 ---
@@ -160,7 +160,7 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<logger level="INFO" doc:name="Logger" doc:id="6771f369-9d4e-4ce0-8d0e-c25f693016e3" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
-		<moodle-rest-lms:post-core-course-delete-courses doc:name="Delete Courses" doc:id="1034e60e-aeb4-4b78-952b-e872d9fde9c8">
+		<moodle-rest-lms:post-core-course-delete-courses doc:name="Delete Courses" doc:id="1034e60e-aeb4-4b78-952b-e872d9fde9c8" config-ref="Moodle_Rest_Lms_Config">
 			<moodle-rest-lms:post-core-course-delete-courses-body ><![CDATA[#[%dw 2.0
 output application/x-www-form-urlencoded
 ---

@@ -80,7 +80,7 @@ payload]]></ee:set-payload>
 		<logger level="INFO" doc:name="Logger" doc:id="50346da1-76c9-4a08-880f-ea664375a328" message="Moodle to Salesforce Create &amp; Update Flow Ended"/>
 	</flow>
 	<flow name="moodleToSalesforceDeleteFlow" doc:id="432d2e49-af2b-4e54-9974-c871765b68fc" >
-		<http:listener doc:name="Listener" doc:id="3366ce0d-1e35-46bd-b444-c69bcc890039" config-ref="moodle-rest-lms-httpListenerConfig" path="moodle/delete/courses/{id}"/>
+		<http:listener doc:name="Listener" doc:id="3366ce0d-1e35-46bd-b444-c69bcc890039" config-ref="moodle-rest-lms-httpListenerConfig" path="/moodle/delete/courses/{id}"/>
 		<logger level="INFO" doc:name="Logger" doc:id="84beaf11-5986-417f-b09f-dce29a437b8d" message="Moodle to Salesforce Delete Flow Started"/>
 		<ee:transform doc:name="Transform Message" doc:id="b76a0c9d-6036-464f-99a9-d9795cd731b4" >
 			<ee:message >
